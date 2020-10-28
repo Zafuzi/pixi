@@ -5,9 +5,9 @@ const {
     ipcMain
 } = require('electron');
 
-try {
-    require('electron-reloader')(module);
-} catch (_) {}
+// try {
+//     require('electron-reloader')(module);
+// } catch (_) {}
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -22,7 +22,7 @@ function createWindow() {
     })
 
     win.loadFile('index.html')
-    win.webContents.openDevTools()
+        //win.webContents.openDevTools()
 }
 
 app.whenReady().then(createWindow)
