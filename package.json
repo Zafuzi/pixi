@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "electron": "^10.1.5",
+    "electron-reloader": "^1.0.1"
+  }
+}
