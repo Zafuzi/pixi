@@ -19,61 +19,19 @@ let canvas,
     pixis_in_goal = 0,
     winner = false;
 
-
-// game starts in easy mode 2x2 grid with 10 pixis
-// each level increases either the pixis or the grid size
-
-let levels = [{
-        name: "Level 1",
-        grid: [
-            [2, 1, 1, 1],
-            [0, 0, 1, 1]
-        ],
-        outline: [
-            0, 0,
-            4, 0,
-            4, 2,
-            2, 2,
-            2, 1,
-            0, 1,
-            0, 0,
-        ]
-    },
-    {
-        name: "Level 2",
-        grid: [
-            [0, 1, 0, 1],
-            [1, 1, 1, 1],
-            [0, 1, 0, 2]
-        ],
-        outline: [
-            0, 1,
-            1, 1,
-            1, 0,
-            2, 0,
-            2, 1,
-            3, 1,
-            3, 0,
-            4, 0,
-            4, 3,
-            3, 3,
-            3, 2,
-            2, 2,
-            2, 3,
-            1, 3,
-            1, 2,
-            0, 2,
-            0, 1
-        ]
-    }
-]
+let changing = false;
 
 // anything in here will be run again when the window resizes
 let update = function() {
+
     old_width = canvas.width;
     old_height = canvas.height;
-    new_width = window.innerWidth || window.ClientRect.width;
-    new_height = window.innerHeight || window.ClientRect.height;
+    new_width = window.innerWidth || window.clientWidth || window.scrollWidth;
+    new_height = window.innerHeight || window.ClientHeight || window.scrollWidth;
+
+
+    grid_size_x = levels[current_level].grid[0].length;
+    grid_size_y = levels[current_level].grid.length;
 
     let greater, smaller;
     if (old_width != new_width || old_height != new_height) {
@@ -81,14 +39,32 @@ let update = function() {
         canvas.width = new_width;
         canvas.height = new_height;
 
-        // rebuild grid
+        // resize grid
         greater = grid_size_x >= grid_size_y ? grid_size_x : grid_size_y;
         smaller = canvas.width <= canvas.height ? canvas.width : canvas.height;
-        grid_cell_w = Math.floor((smaller - 100) / greater);
-        grid_cell_h = Math.floor((smaller - 100) / greater);
+        grid_cell_w = Math.floor((smaller - grid_padding) / greater);
+        grid_cell_h = Math.floor((smaller - grid_padding) / greater);
 
+        grid_size_x = levels[current_level].grid[0].length;
+        grid_size_y = levels[current_level].grid.length;
 
-        grid = build_grid(grid_size_x, grid_size_y, grid_cell_w, grid_cell_h);
+        change_level(current_level);
+    }
+
+    if (pixis_in_goal == pixis.length && t > 200 && !changing) {
+        pixis_in_goal = 0;
+        t = 0;
+        if (current_level == levels.length - 1) {
+            // WINNER!
+            winner = true;
+            changing = true;
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
+        } else {
+            changing = true;
+            change_level(current_level + 1);
+        }
     }
 
     grid.forEach((cell, i) => {
@@ -126,32 +102,85 @@ let update = function() {
             pixis_in_goal++;
         }
     })
-
-    if (pixis_in_goal == pixis.length && t > 200) {
-        // WINNER!
-        winner = true;
-    }
 }
 
-let pixi = function(start_x, start_y) {
+let change_level = function(num) {
+
+    current_level = num;
+    console.log("Changing level: ", num, levels[current_level].name);
+    pixis = [];
+    grid = [];
+
+    grid_size_x = levels[current_level].grid[0].length;
+    grid_size_y = levels[current_level].grid.length;
+
+    grid = build_grid(grid_size_x, grid_size_y, grid_cell_w, grid_cell_h);
+
+    let spawner_cell = grid.filter(g => {
+        return g.spawner;
+    })[0];
+
+    if (spawner_cell) {
+        for (let i = 0; i < levels[current_level].pixi_count; i++) {
+            pixis.push(
+                // the 5's are needed because the pixis have a size
+                // if you don't have the correct size they will spawn on the edge
+                new pixi(
+                    rand_in_range(spawner_cell.x + 5, spawner_cell.x + spawner_cell.w - 5),
+                    rand_in_range(spawner_cell.y + 5, spawner_cell.y + spawner_cell.h - 5),
+                    levels[current_level].speed
+                )
+            );
+        }
+    }
+
+    changing = false;
+}
+
+let pixi = function(start_x, start_y, speed = 100) {
     let o = {
+        start_x: start_x,
+        start_y: start_y,
         x: start_x,
         y: start_y,
-        xdir: Math.random() >= 0.5 ? 1 : -1,
-        ydir: Math.random() >= 0.5 ? 1 : -1,
+        vx: rand_in_range(0, 100) > 50 ? 2 : -2,
+        vy: rand_in_range(0, 100) > 50 ? 2 : -2,
         w: 5,
         h: 5,
-        speed: 30,
+        speed: speed,
         trapped: false
     };
+
+    o.change_dir = function(dir) {
+        let self = this;
+        dir *= -1;
+        return dir;
+    }
+
+    o.change_y = function() {
+        let self = this;
+        self.vy = self.change_dir(self.vy);
+    }
+
+    o.change_x = function() {
+        let self = this;
+        self.vx = self.change_dir(self.vx);
+    }
 
     o.update = function() {
         let self = this;
         self.collided = false;
 
         if (!self.trapped) {
-            self.x += self.xdir * (self.speed / 100);
-            self.y += self.ydir * (self.speed / 100);
+            self.x += self.vx;
+            self.y += self.vy;
+        }
+
+        if (self.x > canvas.width || self.x < 0) {
+            self.x = self.start_x;
+        }
+        if (self.y > canvas.width || self.y < 0) {
+            self.y = self.start_y;
         }
 
         for (let c = 2; c < outline.length - 1; c += 2) {
@@ -165,10 +194,10 @@ let pixi = function(start_x, start_y) {
                 self.collided = true;
                 // yes I know this are backwards, look at the lineLine function for why, the math is beyond me
                 if (h.left || h.right) {
-                    self.ydir *= -1;
+                    self.change_y();
                 }
                 if (h.top || h.bottom) {
-                    self.xdir *= -1;
+                    self.change_x();
                 }
             }
         }
@@ -176,57 +205,7 @@ let pixi = function(start_x, start_y) {
         if (!self.collided) {
             grid.forEach(cell => {
                 if (cell.closed) {
-                    // top
-                    let h = lineRect(cell.x, cell.y, cell.x + cell.w, cell.y, self.x, self.y, self.w, self.h);
-                    if (h) {
-                        self.collided = true;
-                        // yes I know this are backwards, look at the lineLine function for why, the math is beyond me
-                        if (h.left || h.right) {
-                            self.ydir *= -1;
-                        }
-                        if (h.top || h.bottom) {
-                            self.xdir *= -1;
-                        }
-                    }
-
-                    // left
-                    h = lineRect(cell.x, cell.y, cell.x, cell.y + cell.h, self.x, self.y, self.w, self.h);
-                    if (h) {
-                        self.collided = true;
-                        // yes I know this are backwards, look at the lineLine function for why, the math is beyond me
-                        if (h.left || h.right) {
-                            self.ydir *= -1;
-                        }
-                        if (h.top || h.bottom) {
-                            self.xdir *= -1;
-                        }
-                    }
-
-                    // right
-                    h = lineRect(cell.x + cell.w, cell.y, cell.x + cell.w, cell.y + cell.h, self.x, self.y, self.w, self.h);
-                    if (h) {
-                        self.collided = true;
-                        // yes I know this are backwards, look at the lineLine function for why, the math is beyond me
-                        if (h.left || h.right) {
-                            self.ydir *= -1;
-                        }
-                        if (h.top || h.bottom) {
-                            self.xdir *= -1;
-                        }
-                    }
-
-                    // bottom
-                    h = lineRect(cell.x, cell.y + cell.h, cell.x + cell.w, cell.y + cell.h, self.x, self.y, self.w, self.h);
-                    if (h) {
-                        self.collided = true;
-                        // yes I know this are backwards, look at the lineLine function for why, the math is beyond me
-                        if (h.left || h.right) {
-                            self.ydir *= -1;
-                        }
-                        if (h.top || h.bottom) {
-                            self.xdir *= -1;
-                        }
-                    }
+                    self.test_hit(cell);
                 }
             })
         }
@@ -242,6 +221,61 @@ let pixi = function(start_x, start_y) {
             }
         });
 
+    }
+
+    o.test_hit = function(cell) {
+        let self = this;
+        // top
+        let h = lineRect(cell.x, cell.y, cell.x + cell.w, cell.y, self.x, self.y, self.w, self.h);
+        if (h) {
+            self.collided = true;
+            // yes I know this are backwards, look at the lineLine function for why, the math is beyond me
+            if (h.left || h.right) {
+                self.change_y();
+            }
+            if (h.top || h.bottom) {
+                self.change_x();
+            }
+        }
+
+        // left
+        h = lineRect(cell.x, cell.y, cell.x, cell.y + cell.h, self.x, self.y, self.w, self.h);
+        if (h) {
+            self.collided = true;
+            // yes I know this are backwards, look at the lineLine function for why, the math is beyond me
+            if (h.left || h.right) {
+                self.change_y();
+            }
+            if (h.top || h.bottom) {
+                self.change_x();
+            }
+        }
+
+        // right
+        h = lineRect(cell.x + cell.w, cell.y, cell.x + cell.w, cell.y + cell.h, self.x, self.y, self.w, self.h);
+        if (h) {
+            self.collided = true;
+            // yes I know this are backwards, look at the lineLine function for why, the math is beyond me
+            if (h.left || h.right) {
+                self.change_y();
+            }
+            if (h.top || h.bottom) {
+                self.change_x();
+            }
+        }
+
+        // bottom
+        h = lineRect(cell.x, cell.y + cell.h, cell.x + cell.w, cell.y + cell.h, self.x, self.y, self.w, self.h);
+        if (h) {
+            self.collided = true;
+            // yes I know this are backwards, look at the lineLine function for why, the math is beyond me
+            if (h.left || h.right) {
+                self.change_y();
+            }
+            if (h.top || h.bottom) {
+                self.change_x();
+            }
+        }
     }
 
     o.draw = function() {
@@ -287,6 +321,10 @@ let loop = function() {
             }
             if (cell.closed) {
                 ctx.fillStyle = "rgba(106, 90, 205, .2)";
+            }
+
+            if (cell.portal) {
+                ctx.fillStyle = "rgba(255, 0, 0, .2)";
             }
             ctx.fillRect(cell.x, cell.y, cell.w, cell.h);
             ctx.closePath();
@@ -348,9 +386,8 @@ let build_grid = function(
 
     for (let row = 0; row < size_y; row++) {
         for (let col = 0; col < size_x; col++) {
-
-            if (levels[current_level].grid[row][col] == 1 || levels[current_level].grid[row][col] == 2) {
-                o.push({
+            if (levels[current_level].grid[row][col] != 0) {
+                let r = {
                     x: (offset_x + (col * w)),
                     y: (offset_y + (row * h)),
                     w: w,
@@ -360,8 +397,12 @@ let build_grid = function(
                     val: levels[current_level].grid[row][col],
                     closed: false,
                     hover: false,
-                    goal: levels[current_level].grid[row][col] == 2
-                })
+                    goal: levels[current_level].grid[row][col] == 2,
+                    spawner: levels[current_level].grid[row][col] == 3,
+                    portal: levels[current_level].grid[row][col] >= 100
+                }
+
+                o.push(r);
             }
         }
     }
@@ -377,21 +418,8 @@ addEventListener("DOMContentLoaded", dcl => {
     grid_size_y = levels[current_level].grid.length;
 
     ctx.font = '296px sans-serif';
-
     update();
-
-    let grid_width = grid_size_x * grid_cell_w;
-    let grid_height = grid_size_y * grid_cell_h;
-    let offset_x = Math.floor((canvas.width / 2) - (grid_width / 2));
-    let offset_y = Math.floor((canvas.height / 2) - (grid_height / 2));
-    for (let i = 0; i < 10; i++) {
-        pixis.push(
-            new pixi(
-                rand_in_range(offset_x + 50, offset_x + 350),
-                rand_in_range(offset_y + 50, offset_y + 150)
-            )
-        );
-    }
+    change_level(0);
 
     requestAnimationFrame(FPS_LOCK);
 })
@@ -435,8 +463,7 @@ function rand_in_range(min, max) {
 let hit = function(f) {
     let x = f.x,
         y = f.y;
-    let w2 = f.w;
-    let h2 = f.h;
+
     if (mx < x) { return false; }
     if (mx > x + f.w) { return false; }
     if (my < y) { return false; }

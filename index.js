@@ -5,9 +5,11 @@ const {
     ipcMain
 } = require('electron');
 
-// try {
-//     require('electron-reloader')(module);
-// } catch (_) {}
+try {
+    require('electron-reloader')(module);
+} catch (e) {
+    console.log(e);
+}
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -15,14 +17,14 @@ function createWindow() {
         height: 900,
         autoHideMenuBar: true,
         backgroundColor: "#fff",
-        useContentSize: true,
+        fullscreenable: true,
         webPreferences: {
             nodeIntegration: false
         }
     })
 
     win.loadFile('index.html')
-        //win.webContents.openDevTools()
+    win.webContents.openDevTools()
 }
 
 app.whenReady().then(createWindow)
