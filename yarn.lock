@@ -30,10 +30,10 @@
   dependencies:
     defer-to-connect "^1.0.1"
 
-"@types/node@^12.0.12":
-  version "12.19.2"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-12.19.2.tgz#9565ed5c72ba96038fc3add643edd5e7820598e7"
-  integrity sha512-SRH6QM0IMOBBFmDiJ75vlhcbUEYEquvSuhsVW9ijG20JvdFTfOrB1p6ddZxz5y/JNnbf+9HoHhjhOVSX2hsJyA==
+"@types/node@^14.6.2":
+  version "14.18.12"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.18.12.tgz#0d4557fd3b94497d793efd4e7d92df2f83b4ef24"
+  integrity sha512-q4jlIR71hUpWTnGhXWcakgkZeHa3CCjcQcnuzU8M891BAWA2jHiziiWEPEkdS5pFsz7H9HJiy8BrK7tBRNrY7A==
 
 ansi-styles@^4.1.0:
   version "4.3.0"
@@ -226,13 +226,13 @@ electron-reloader@^1.0.1:
     electron-is-dev "^1.1.0"
     find-up "^4.1.0"
 
-electron@^10.1.5:
-  version "10.1.5"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-10.1.5.tgz#f2b161310f627063e73fbac44efcb35dece83a90"
-  integrity sha512-fys/KnEfJq05TtMij+lFvLuKkuVH030CHYx03iZrW5DNNLwjE6cW3pysJ420lB0FRSfPjTHBMu2eVCf5TG71zQ==
+electron@^13.6.6:
+  version "13.6.6"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-13.6.6.tgz#ebd4754b2b55d54a2e8e9cdc3d0a2bb6b7053827"
+  integrity sha512-TP2Bl1nTxaH1yRmlYiF7imzvKE/NASE0cl6wOYA3AaP/UrBGc4L3NwJfn5Z55o+1t4TH8vCRxENufESyb32HhA==
   dependencies:
     "@electron/get" "^1.0.1"
-    "@types/node" "^12.0.12"
+    "@types/node" "^14.6.2"
     extract-zip "^1.0.3"
 
 encodeurl@^1.0.2:
